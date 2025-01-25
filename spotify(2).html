@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Music</title>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            text-align: center;
+            background-color: #000000;
+            margin: 0;
+            padding: 0;
+            color: #FFFFFF;
+        }
+        h1 {
+            color: #FFFFFF;
+            margin-top: 20px;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .box1 {
+            width: calc(45% - 20px);
+            border: 2px solid black;
+            background-color: #050708;
+            border-radius: 2rem .3rem;
+            margin-bottom: 20px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        .box1:hover {
+            background-color: rgba(165, 42, 42, 0.521);
+            border-color: white;
+        }
+        .box1 img {
+            width: 100%;
+            height: auto;
+        }
+        .box1 .card-text {
+            padding: 10px;
+            text-align: left;
+            color: #FFFFFF;
+            font-size: 14px;
+        }
+        .search-bar input[type="search"] {
+            width: 80%;
+            height: 38px;
+            border: 1.5px solid yellow;
+            text-align: center;
+            border-radius: 1rem;
+            font-size: 18px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        .search-bar input[type="search"]:hover,
+        .search-bar input[type="search"]:focus {
+            border: 4px solid orangered;
+        }
+        .search-bar input[type="submit"] {
+            background-color: orangered;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 1rem;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .search-bar input[type="submit"]:hover {
+            background-color: #ff6347;
+        }
+        .player {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .download-container {
+            margin-top: 20px;
+        }
+        .download-btn {
+            background-color: #45a049;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        .download-btn:hover {
+            background-color: #35633e;
+        }
+        .play-button {
+            background-color: orangered;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+        .play-button:hover {
+            background-color: #ff6347;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0, 0, 0, 0.7); /* Black w/ opacity */
+        }
+        .modal-content {
+            background-color: #333;
+            margin: 15% auto; /* 15% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* Could be more or less, depending on screen size */
+            border-radius: 10px;
+            color: #FFFFFF;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: #ff6347;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Spotify Music</h1>
+    <div id="userCount" style="color: white; font-size: 18px; margin-top: 20px;">
+    Loading user count...
+</div>
+    <div class="search-bar">
+        <form id="searchForm">
+            <input type="search" id="songname" placeholder="Search for a song..." required>
+            <input type="submit" value="Search">
+        </form>
+    </div>
+    
+    <div class="container" id="songContainer">
+        <!-- Songs will be dynamically inserted here -->
+    </div>
+    
+
+    <!-- The Modal for Alerts -->
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAlert()">&times;</span>
+            <h2>🚀 Powered By @itachiXCoder!</h2>
+            <p id="alertMessage">Some alert text..</p>
+            <button class="alert-button" onclick="closeAlert()">OK</button>
+        </div>
+    </div>
+
+    <!-- The Loading Modal -->
+    <div id="loadingModal" class="modal">
+        <div class="modal-content">
+            <h2>Made By @itachiXCoder</h2>
+            <p>Please wait while the song is loading.</p>
+        </div>
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        const songContainer = document.getElementById('songContainer');
+        const telegram = window.Telegram.WebApp;
+
+        // Get user's chat_id
+        const chatId = telegram.initDataUnsafe?.user?.id;
+        // Get user's chat_id from Telegram WebApp API// Get chat ID
+
+// Save user ID and fetch user count
+async function saveUserData() {
+    if (chatId) {
+        try {
+            // Send the user ID to the server to save and get user count
+            const response = await fetch(`saveUser.php?userId=${chatId}`);
+            const data = await response.json();
+
+            // Check if the response was successful
+            if (data.status === 'success') {
+                displayUserCount(data.userCount); // Display user count
+            } else {
+                showAlert('Error: ' + data.message); // Display error message if something went wrong
+            }
+        } catch (error) {
+            console.error('Error saving user data:', error);
+            showAlert('An error occurred while saving user data: ' + error.message);
+        }
+    }
+}
+
+// Display user count on the page
+function displayUserCount(count) {
+    const userCountElement = document.getElementById('userCount');
+    if (userCountElement) {
+        userCountElement.textContent = `Total Users: ${count}`;
+    }
+}
+
+// Function to show custom alert
+function showAlert(message) {
+    document.getElementById('alertMessage').innerText = message; // Set the alert message
+    document.getElementById('myModal').style.display = 'block'; // Show the modal
+}
+
+// Function to close the custom alert
+function closeAlert() {
+    document.getElementById('myModal').style.display = 'none'; // Hide the modal
+}
+
+// Call the function to save user data and display user count when the page loads
+window.onload = saveUserData; // Get chat ID from Telegram Web App
+
+        // Handle form submission to search for songs
+        document.getElementById('searchForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const songname = encodeURIComponent(document.getElementById('songname').value);
+            const apiUrl = `https://zawmyo123.serv00.net/api/song.php?name=${songname}`;
+
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const songs = await response.json();
+
+                if (songs && songs.results && songs.results.length > 0) {
+                    songContainer.innerHTML = ''; // Clear previous results
+                    songs.results.forEach(song => {
+                        const track = encodeURIComponent(song.track);
+                        const songBox = document.createElement('div');
+                        songBox.className = 'box1';
+                        songBox.onclick = () => playTrack(track); // Call playTrack directly
+                        songBox.innerHTML = `
+                            <img src="${song.image_url}" alt="Album Image">
+                            <div class="card-text">
+                                <h3>${song.title}</h3>
+                                <p>Artist: ${song.artist}</p>
+                                <p>Release Date: ${song.release_date}</p>
+                            </div>
+                        `;
+                        songContainer.appendChild(songBox);
+                    });
+                } else {
+                    showAlert('No songs found.'); // Show alert if no songs found
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                showAlert('An error occurred while searching for songs: ' + error.message); // Show alert on error
+            }
+        });
+
+        // Function to play selected track
+        async function playTrack(track) {
+            const apiUrl = `https://zawmyo123.serv00.net/api/spotify.php?url=${track}`;
+            showLoading(); // Show loading dialog
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const song = await response.json();
+
+                hideLoading(); // Hide loading dialog
+
+                if (song) {
+                    const downloadUrl = song.download_url;
+                    const songName = song.song_name;
+                    const artistName = song.artist;
+                    const imageUrl = song.img;
+
+                    // Display player
+                    songContainer.innerHTML = `
+                        <div class='player'>
+                            <div class='album'>
+                                <img src='${imageUrl}' alt='Album Image' style='max-width: 150px;'>
+                            </div>
+                            <div class='music-details'>
+                                <h1>${songName}</h1>
+                                <p>Artist: ${artistName}</p>
+                                           <audio controls autoplay>
+                                    <source src='${downloadUrl}' type='audio/mpeg'>
+                                    Your browser does not support the audio element.
+                                </audio>
+                                <div class='audio-controls'>
+                                    <button onclick='skipBackward()'>⏪</button>
+                                    <button id='button_play' class='play-button' onclick='buttonPlayPress("${downloadUrl}")'>Play</button>
+                                    <button onclick='skipForward()'>⏩</button>
+                                    <input type='range' id='volumeSlider' min='0' max='1' step='0.1' value='1' style='width: 100%;'>
+                                </div>
+                                <button class='download-btn' onclick='sendToBot("${downloadUrl}", "${songName}")'>Send to Bot</button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Initialize volume control
+                    const volumeSlider = document.getElementById('volumeSlider');
+                    volumeSlider.addEventListener('input', function () {
+                        audioPlayer.volume = volumeSlider.value; // Set audio player volume
+                    });
+                } else {
+                    hideLoading(); // Hide loading dialog
+                    showAlert("No song found with the name: " + track); // Show alert if song not found
+                }
+            } catch (error) {
+                hideLoading(); // Hide loading dialog
+                console.error('Fetch error:', error);
+                showAlert('An error occurred while fetching song details: ' + error.message); // Show alert on error
+            }
+        }
+
+        // Audio player state
+        let state = "stop";
+        let audioPlayer = new Audio(); // Create a new Audio object
+
+        function buttonPlayPress(src) {
+            const button = document.getElementById('button_play');
+
+            if (state === "stop") {
+                state = "play";
+                button.innerHTML = "Pause"; // Change button text to "Pause"
+                audioPlayer.src = src; // Set the audio source
+                showLoading(); // Show loading dialog when playing starts
+                audioPlayer.play().then(() => {
+                    hideLoading(); // Hide loading dialog once playback starts
+                }).catch(error => {
+                    hideLoading(); // Hide loading dialog on error
+                    showAlert('Error playing audio: ' + error.message); // Show alert on error
+                });
+            } else if (state === "play" || state === "resume") {
+                state = "pause";
+                button.innerHTML = "Play"; // Change button text to "Play"
+                audioPlayer.pause(); // Pause playback
+            } else if (state === "pause") {
+                state = "resume";
+                button.innerHTML = "Pause"; // Change button text to "Pause"
+                audioPlayer.play(); // Resume playback
+            }
+        }
+
+        // Skip backward
+        function skipBackward() {
+            audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10); // Skip backward 10 seconds
+        }
+
+        // Skip forward
+        function skipForward() {
+            audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 10); // Skip forward 10 seconds
+        }
+
+        // Send audio to Telegram Bot
+        async function sendToBot(audioUrl, songName) {
+            const botToken = 'AAGH3zk1yGsIH2DjYDzeIhRNUfwAhO9_SRc'; // Replace with your bot token
+            const chatId = telegram.initDataUnsafe.user.id; // Get chat ID from Telegram Web App
+            const message = `Song Title: ${songName}`;
+            const audioFile = audioUrl; // The audio file URL
+
+            if (!chatId) {
+                showAlert('Chat ID is not available. Please try again.'); // Alert if chat ID is not available
+                return;
+            }
+
+            try {
+                // Sending message and audio to the bot
+                const response = await fetch(`https://api.telegram.org/bot${botToken}/sendAudio`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        audio: audioFile,
+                        caption: message
+                    }),
+                });
+
+                if (!response.ok) throw new Error('Failed to send audio to bot.');
+
+                showAlert('Audio sent to bot successfully!'); // Show alert on success
+            } catch (error) {
+                console.error('Error sending audio to bot:', error);
+                showAlert('Error sending audio to bot: ' + error.message); // Show alert on error
+            }
+        }
+
+        // Function to show the custom alert
+        function showAlert(message) {
+            document.getElementById('alertMessage').innerText = message; // Set the alert message
+            document.getElementById('myModal').style.display = 'block'; // Show the modal
+        }
+
+        // Function to close the custom alert
+        function closeAlert() {
+            document.getElementById('myModal').style.display = 'none'; // Hide the modal
+        }
+
+        // Show loading modal
+        function showLoading() {
+            document.getElementById('loadingModal').style.display = 'block'; // Show loading modal
+        }
+
+        // Hide loading modal
+        function hideLoading() {
+            document.getElementById('loadingModal').style.display = 'none'; // Hide loading modal
+        }
+
+        // Close the modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('myModal');
+            if (event.target === modal) {
+                closeAlert();
+            }
+        };
+    </script>
+</body>
+</html>
